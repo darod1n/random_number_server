@@ -1,0 +1,49 @@
+version: "3.8"
+services:
+  rndserver:
+    container_name: rndserver
+    build: ./
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    command: /main
+    environment:
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_DB: ${REDIS_DB}
+
+    volumes:
+      - "./:/app"
+    ports:
+      - "8080:8080"
+    networks:
+      - rnd_network
+
+  redis:
+    container_name: numberstorage 
+    image: "redis:alpine"
+    environment:
+      - REDIS_HOST=localhost
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD", "redis-cli", "-h", "localhost", "-p", "${REDIS_PORT}", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - rnd_network 
+
+networks:
+  rnd_network:
+   driver: bridge
+
+volumes:
+  redis-data:
+    driver: local
